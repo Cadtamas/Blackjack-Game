@@ -237,7 +237,7 @@ class BlackJack(Frame):
             y=self.dealer.y                 # y postiton from the player class
             for c in self.dealer.cards:
                 v=v+c[0]+' '+c[1]+'\n'
-                w='cards/'+c[1]+'_of_'+c[0]+'.gif'              #the card's gif name
+                w=c[1]+'_of_'+c[0]+'.gif'              #the card's gif name
                 self.dealer.cpics[w]=PhotoImage(file=w)
                 self.game.create_image(x,y,image=self.dealer.cpics[w])
                 x+=10                                                   #slide every card in a little bit
