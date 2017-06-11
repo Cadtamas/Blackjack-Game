@@ -45,11 +45,10 @@ class ControlPanel(Frame):
         self.b2.pack(side=LEFT,padx=5,pady=5)
         self.b3=Button(self,text="Stand",state=DISABLED,command=self.stan )
         self.b3.pack(side=LEFT,padx=5,pady=5)
-        self.b4=Button(self,text="Surrender",state=DISABLED,command=self.sur )
-        self.b4.pack(side=LEFT,padx=5,pady=5)
         self.pack(padx=5,pady=5,side=LEFT)
 
     def enablePlayer(self):
+        "Change the player's status"
         if self.player.boss.master.gamestate==0:
             v=self.chk.get()
             #self.b2.configure(state=[DISABLED,NORMAL] [v])
@@ -60,18 +59,19 @@ class ControlPanel(Frame):
                 self.player.status=0
 
     def doub(self):
+        "Call the master's <double> method "
         self.player.boss.master.double()
 
     def hi(self):
+        "Call the master's <hit> method "
         self.player.boss.master.hit(self.player.id)
 
     def stan(self):
+        "Call the master's <stand> method "
         self.player.boss.master.stand(self.player.id)
 
-    def sur(self):
-        self.player.boss.master.surrender()
-
     def setBank(self,p):
+        "Change the player's bank account"
         self.money+=p
         self.mlab.config(text='Cash: %s $' % self.money)
 
@@ -92,12 +92,13 @@ class BlackJack(Frame):
     """The main program"""
     def __init__(self):
         Frame.__init__(self)
-        self.master.title("<<<<<<< BLACK JACK >>>>>>>")
+        self.master.title("<<<<<<< BLACK JACK >>>>>>>") #Title in the top of the window
         self.initGame()
 
     def initGame(self):
+        "The first things to do"
         #Menu
-        self.mbar=MenuBar(self)
+        self.mbar=MenuBar(self)     #place the menubar
         self.mbar.pack(side=TOP,expand=NO,fill=X)
 
         #Canvas
@@ -114,7 +115,7 @@ class BlackJack(Frame):
 
         #Players :
         playerlist=["Player 1","Player 2","Player 3","Player 4","Player 5","Player 6"]  #The player's list
-        self.players={}
+        self.players={} #The player's dictionary
         playerpos=[[75,500],[225,500],[375,500],[525,500],[675,500],[825,500]]
         n=0
         for name in  playerlist:
@@ -149,142 +150,146 @@ class BlackJack(Frame):
         #The cards deck :
         self.colors=["spades","hearts","diamonds","clubs"]
         self.val=[['2',2,2],['3',3,3],['4',4,4],['5',5,5],['6',6,6],['7',7,7],['8',8,8],['9',9,9],['10',10,10],["jack",10,10],["queen",10,10],["king",10,10],["ace",11,1]]
-
+        #[Cards's name, high value, low value] ---Check the score method for more information.
         self.deck=[]
         for c in self.colors:
             for v,v1,v2 in self.val:
                 self.deck.append([c,v,v1,v2])
         self.cardlist=[]        #The current cards
-        self.gamestate=0
+        self.gamestate=0        #Initial state
 
     def start(self):
-        "The initial steps"
-        if self.checkBet():
+        "The initial steps, two cards for every active players, and one for the dealer"
+        if self.checkBet(): #Checking the bet for incorrect input or negative bet or too high bet
             #player's turn:
-            self.gamestate=1
-            self.cardlist=[]
-            self.showcards(self.dealer.id)
+            self.gamestate=1        #First state
+            self.cardlist=[]        #Clear the cardlist
+            self.showcards(self.dealer.id)  #Clear the dealer's canvas
             for name in self.players:
-                self.showcards(name)
+                self.showcards(name)        #Clear the player's canvas
                 if self.players[name].status==1:
-                    n=self.shuffle()            #get a card
-                    self.players[name].cards.append(self.deck[n])
+                    n=self.shuffle()                                        #get a card
+                    self.players[name].cards.append(self.deck[n])           #put it in the player's hand
                     self.score(self.players[name].cards,self.players[name]) #score
-                    self.panel[name].money-=self.panel[name].bet.get()      #We deduct the amount of the bet
+                    self.panel[name].money-=self.panel[name].bet.get()      #deduct the amount of the bet
                     self.panel[name].mlab.configure(text="Cash: %s $" %(self.panel[name].money)) #Change the label
-                    self.panel[name].e.configure(state=DISABLED)
-                else:
-                    self.game.itemconfig(self.messages[name],text="%s set the bet, and press <Start>" %(name),font=('Times',15,'bold'),fill='yellow',width=145)
-                    self.game.itemconfig(self.score_p[name],text="Points: 0" )
+                    self.panel[name].e.configure(state=DISABLED)            #disable the entry field
+                else:   #the inactive players:
+                    self.game.itemconfig(self.messages[name],text="%s set the bet, and press <Start>" %(name),font=('Times',15,'bold'),fill='yellow',width=145) #get this message
+                    self.game.itemconfig(self.score_p[name],text="Points: 0" )  #and set their score points to 0
 
             #dealer's turn:
-            n= self.shuffle()
-            self.dealer.cards.append(self.deck[n])
-            self.score(self.dealer.cards,self.dealer)
+            n= self.shuffle()                           #get a card
+            self.dealer.cards.append(self.deck[n])      #put it in the dealer's hand
+            self.score(self.dealer.cards,self.dealer)   #calculate the score
 
             #again the players:
             for name in self.players:
                 if self.players[name].status==1:            #The active players only
-                    n=self.shuffle()
+                    n=self.shuffle()                        #The second card...
                     self.players[name].cards.append(self.deck[n])
-                    self.score(self.players[name].cards,self.players[name])
-                    if self.players[name].score==21:        #In case of BLACKJACK
-                        self.stand(name)
-                        self.game.itemconfig(self.score_p[name],text='BLACK JACK')
+                    self.score(self.players[name].cards,self.players[name]) #calculate the score
+                    if self.players[name].score==21:        #In case of BLACKJACK...
+                        self.stand(name)                    #...press the stand button automatically
+                        self.game.itemconfig(self.score_p[name],text='BLACK JACK')      #...change the score point to <BLACK JACK> label
                     else:
-                        self.panel[name].b2.configure(state=NORMAL) #Hit button
-                        self.panel[name].b3.configure(state=NORMAL) #Start button
-            self.startB.configure(state=DISABLED)
+                        self.panel[name].b2.configure(state=NORMAL) #Activate the Hit button
+                        self.panel[name].b3.configure(state=NORMAL) #Activate the Start button
+            self.startB.configure(state=DISABLED)   #Disable the Start button
         else:
-            self.nextround()
+            self.nextround()   #If someone sets an invalid bet, a new round will begin until it will be changed to the right value.
 
     def shuffle(self):
+        "Returns a card's index that doesn't contained the actual cardlist"
         while 1:
-            n=randrange(0,51)
-            if n not in self.cardlist :
-                self.cardlist.append(n)
-                break
-        return n
+            n=randrange(0,51)   #get a random number
+            if n not in self.cardlist :     #if its not in the actual cardlist:
+                self.cardlist.append(n)     #...put it in the cardlist
+                break                       #break the while loop
+        return n                            #and return with the card's index
 
     def score(self, cardlist, player):
-        x=0
-        y=0
-        for card in cardlist:
+        "Calculate the <player>'s score based on the <cardlist>"
+        x=0                             #the card's high value
+        y=0                             #the card's low valus (actually the ace's has two values)
+        for card in cardlist:           #iterate the cardlist
             x+=card[2]
             y+=card[3]
-            if x>21:
-                player.score=y
+            if x>21:                    #I have created a simplified method to decide the ace's value. (11 or 1)...
+                player.score=y          #...if the score more than 21, all cards get the low values. (I would like to improve this method later.)
             else:
                 player.score=x
-        self.showcards(player.id)
-        if player==self.dealer:                                     #We have to change score texts
+        self.showcards(player.id)       #Put the cards picture to the canvas
+        #Change the score points in the canvas:
+        if player==self.dealer:
             self.game.itemconfig(self.dealer_score_p,text="Points: %s " %(player.score))
         else:
             self.game.itemconfig(self.score_p[player.id],text="Points: %s " %(player.score))
         if player.score>21 and player!=self.dealer:
-            #self.panel[player.id].stan()
-            self.stand(player.id)
-
+            self.stand(player.id)       #If the player score is more than 21 the stand button will be pressed
 
     def showcards(self,name):
-        self.after(100)
-        v=''
+        "Place the card gifs to the canvas"
+        self.after(100)         #wait a little bit.
+        v=''                    #this will be the label that shows the card's names
         if name=="Dealer":
-            x=self.dealer.x-30
-            y=self.dealer.y
+            x=self.dealer.x-30              # x position from the player class
+            y=self.dealer.y                 # y postiton from the player class
             for c in self.dealer.cards:
                 v=v+c[0]+' '+c[1]+'\n'
-                w='cards/'+c[1]+'_of_'+c[0]+'.gif'
+                w='cards/'+c[1]+'_of_'+c[0]+'.gif'              #the card's gif name
                 self.dealer.cpics[w]=PhotoImage(file=w)
                 self.game.create_image(x,y,image=self.dealer.cpics[w])
-                x+=10
-            self.game.itemconfig(self.dealer_message,text=v,font=('Times',10,'bold'),fill='blue')
+                x+=10                                                   #slide every card in a little bit
+            self.game.itemconfig(self.dealer_message,text=v,font=('Times',10,'bold'),fill='blue')   #change the label
 
         else:
-            if self.players[name].status==1:
-                x=self.players[name].x-30
+            if self.players[name].status==1:        #the active players
+                x=self.players[name].x-30           #get the x,y coordinates from the player class
                 y=self.players[name].y
                 for c in self.players[name].cards:
                     v=v+c[0]+' '+c[1]+'\n'
                     w='cards/'+c[1]+'_of_'+c[0]+'.gif'
                     self.players[name].cpics[w]=PhotoImage(file=w)
                     self.game.create_image(x,y,image=self.players[name].cpics[w])
-                    #self.card_images.append(self.game.create_image(x,y,image=PhotoImage(file=w)))
                     x+=10
                 self.game.itemconfig(self.messages[name],text=v,font=('Times',10,'bold'),fill='blue')
 
     def hit(self,name):
+        "Get a new card"
         n=self.shuffle()
         self.players[name].cards.append(self.deck[n])
         self.score(self.players[name].cards,self.players[name])
 
     def stand(self,name):
-        self.panel[name].b2.configure(state=DISABLED) #Hit button
-        self.panel[name].b3.configure(state=DISABLED) #Start button
-        self.players[name].status=2
+        "Close the players turn and jump to the next player"
+        self.panel[name].b2.configure(state=DISABLED) #Disable the Hit button
+        self.panel[name].b3.configure(state=DISABLED) #Disable the Hold button
+        self.players[name].status=2                   #Change the player's status
         status_Chk=[]
         for tag in self.players:
             status_Chk.append(self.players[tag].status)
         if 1 not in status_Chk:                 #if all active players hit the stand button or busted...
-            while self.dealer.score<17:
+            while self.dealer.score<17:         #...the dealer's turn comes
                 n= self.shuffle()
                 self.dealer.cards.append(self.deck[n])
                 self.score(self.dealer.cards,self.dealer)
-            self.wincheck()
-            self.nextround()
+            self.wincheck()                     #check who's win
+            self.nextround()                    #next turn begins
 
     def wincheck(self):
+        "Compare the scores"
         for name in self.players:
-            if self.players[name].score>21:
+            if self.players[name].score>21:     #if the player has more than 21 points, the dealer won
                 break
-            elif self.dealer.score>21:
+            elif self.dealer.score>21:          #if the player has less or egal 21 points and the dealer has more than 21 points:
                 if self.players[name].score==21 and len(self.players[name].cards)==2:                #Blackjack
-                    self.panel[name].setBank(2.5*self.panel[name].bet.get())
-                    self.panel[name].mlab.configure(text="Cash: %s $" %(self.panel[name].money))
+                    self.panel[name].setBank(2.5*self.panel[name].bet.get())                         #Get the money
+                    self.panel[name].mlab.configure(text="Cash: %s $" %(self.panel[name].money))     #show the new amount
                 elif self.players[name].score<=21:                                                   #win
-                    self.panel[name].setBank(2*self.panel[name].bet.get())
-                    self.panel[name].mlab.configure(text="Cash: %s $" %(self.panel[name].money))
-            else:
+                    self.panel[name].setBank(2*self.panel[name].bet.get())                           #Get the money
+                    self.panel[name].mlab.configure(text="Cash: %s $" %(self.panel[name].money))     #show the new amount
+            else:                               #if the dealer and the player has less or egal 21 points:
                 if self.players[name].score==21 and len(self.players[name].cards)==2:                #Blackjack
                     self.panel[name].setBank(2.5*self.panel[name].bet.get())
                     self.panel[name].mlab.configure(text="Cash: %s $" %(self.panel[name].money))
@@ -294,38 +299,41 @@ class BlackJack(Frame):
                 elif self.players[name].score<=21 and self.players[name].score==self.dealer.score:    #draw
                     self.panel[name].setBank(self.panel[name].bet.get())
                     self.panel[name].mlab.configure(text="Cash: %s $" %(self.panel[name].money))
+        #If the player has lost, nothing happens, the amount of money has been already substracted
 
     def nextround(self):
         "Initialize the next round"
-        for name in self.panel:
-            self.panel[name].e.configure(state=NORMAL)
-            if self.players[name].status==2:
+        for name in self.panel:                         #Every players...
+            self.panel[name].e.configure(state=NORMAL)  #activate the entry field
+            if self.players[name].status==2:            #set the status back to 1
                 self.players[name].status=1
-            self.players[name].cards=[]
-            self.players[name].cpics={}
-            self.players[name].score=0
-        self.startB.configure(state=NORMAL)
-        self.dealer.score=0
+            self.players[name].cards=[]                 #clear the player's cardlist
+            self.players[name].cpics={}                 #clear the player's picture dictionary
+            self.players[name].score=0                  #set the score to 0
+            if self.panel[name].money==0:               #If the player has ran out of money:
+                self.game.itemconfig(self.messages[name],text="%s, GAME OVER" %(name),font=('Times',15,'bold'),fill='yellow',width=145)     #Give a nice message
+                self.players[name].status=0             #set the status to inactive
+                self.panel[name].chkB.configure(state=DISABLED)     #disable the check button
+        self.startB.configure(state=NORMAL) #Activate the Start button
+        self.dealer.score=0               #Clear the dealer's datas...
         self.dealer.cards=[]
         self.dealer.cpics={}
         self.gamestate=0
 
     def checkBet(self):
+        "Check the entry field for invalid bets if everything okay it will return an <1>, else an <0> until every fields get valid values"
         for name in self.panel:
-            if self.players[name]==1:
+            if self.players[name].status==1:    #Only for the active players
                 try:
                     bet=self.panel[name].bet.get()
-                    if bet>self.panel[name].money or bet<=0:
-                        self.game.itemconfig(self.messages[name],text="%s the bet must be an integer between 1 and %s" %(name,self.panel[name].money),font=('Times',15,'bold'),fill='yellow',width=145)
+                    if bet>self.panel[name].money or bet<=0: # if the bet is more then the player's money
+                        self.game.itemconfig(self.messages[name],text="%s, the bet must be an integer between 1 and %s" %(name,self.panel[name].money),font=('Times',15,'bold'),fill='yellow',width=145)
                         return 0
 
-                except:
-                    self.game.itemconfig(self.messages[name],text="%s the bet must be an integer between 1 and %s" %(name,self.panel[name].money),font=('Times',15,'bold'),fill='yellow',width=145)
+                except:                          #if the field get a non-integer value:
+                    self.game.itemconfig(self.messages[name],text="%s, the bet must be an integer between 1 and %s" %(name,self.panel[name].money),font=('Times',15,'bold'),fill='yellow',width=145)
                     return 0
         return 1
-
-    def surrender(self):
-        pass
 
     def double(self):
         pass
@@ -343,15 +351,12 @@ class BlackJack(Frame):
             self.game.itemconfig(self.messages[name],text="%s set the bet, and press <Start>" %(name),font=('Times',20,'bold'),fill='yellow',width=145)
             self.game.itemconfig(self.score_p[name],text="Points: 0 ")
             self.panel[name].chkB.deselect()
+            self.panel[name].chkB.configure(state=NORMAL)
         self.dealer.score=0
         self.dealer.cards=[]
         self.game.itemconfig(self.dealer_message,text="Ready" , font=('Times',20,'bold'),fill='Red')
         self.game.itemconfig(self.dealer_score_p,text="Points: 0 " , font=('Arial',10,'bold'),fill='White')
         self.gamestate=0
-
-
-    def quit(self):
-        pass
 
 if __name__=='__main__':
     BlackJack().mainloop()
@@ -359,4 +364,4 @@ if __name__=='__main__':
 
 
 
-__author__ = 'Klafa'
+__author__ = 'Cadtamas'
